@@ -3,7 +3,7 @@ import { CacheObserver } from "../observers/cache_observer"
 import { FormSubmitObserver } from "../observers/form_submit_observer"
 import { FrameRedirector } from "./frames/frame_redirector"
 import { History } from "./drive/history"
-import { LinkPrefetchObserver } from "../observers/link_prefetch_observer"
+import { LinkPreloadObserver } from "../observers/link_preload_observer"
 import { LinkClickObserver } from "../observers/link_click_observer"
 import { FormLinkClickObserver } from "../observers/form_link_click_observer"
 import { getAction, expandURL, locationIsVisitable } from "./url"
@@ -18,8 +18,6 @@ import { PageView } from "./drive/page_view"
 import { FrameElement } from "../elements/frame_element"
 import { Preloader } from "./drive/preloader"
 import { Cache } from "./cache"
-import { prefetchCache } from "./drive/prefetch_cache"
-import { FetchMethod, FetchRequest } from "../http/fetch_request"
 
 export class Session {
   navigator = new Navigator(this)
@@ -29,7 +27,7 @@ export class Session {
 
   pageObserver = new PageObserver(this)
   cacheObserver = new CacheObserver()
-  linkPrefetchObserver = new LinkPrefetchObserver(this, document)
+  linkPreloadObserver = new LinkPreloadObserver(this, document.body)
   linkClickObserver = new LinkClickObserver(this, window)
   formSubmitObserver = new FormSubmitObserver(this, document)
   scrollObserver = new ScrollObserver(this)
@@ -47,14 +45,14 @@ export class Session {
 
   constructor(recentRequests) {
     this.recentRequests = recentRequests
-    this.preloader = new Preloader(this, this.view.snapshotCache)
+    this.preloader = new Preloader(this)
   }
 
   start() {
     if (!this.started) {
       this.pageObserver.start()
       this.cacheObserver.start()
-      this.linkPrefetchObserver.start()
+      this.linkPreloadObserver.start()
       this.formLinkClickObserver.start()
       this.linkClickObserver.start()
       this.formSubmitObserver.start()
@@ -62,7 +60,6 @@ export class Session {
       this.streamObserver.start()
       this.frameRedirector.start()
       this.history.start()
-      this.preloader.start()
       this.started = true
       this.enabled = true
     }
@@ -76,7 +73,7 @@ export class Session {
     if (this.started) {
       this.pageObserver.stop()
       this.cacheObserver.stop()
-      this.linkPrefetchObserver.stop()
+      this.linkPreloadObserver.stop()
       this.formLinkClickObserver.stop()
       this.linkClickObserver.stop()
       this.formSubmitObserver.stop()
@@ -84,7 +81,6 @@ export class Session {
       this.streamObserver.stop()
       this.frameRedirector.stop()
       this.history.stop()
-      this.preloader.stop()
       this.started = false
     }
   }
@@ -159,7 +155,11 @@ export class Session {
     } else {
       const location = new URL(element.href)
 
-      return this.elementIsNavigatable(element) && locationIsVisitable(location, this.snapshot.rootLocation)
+      return (
+        this.elementIsNavigatable(element) &&
+        locationIsVisitable(location, this.snapshot.rootLocation) &&
+        this.preloader.isPreloadable(element)
+      )
     }
   }
 
@@ -193,35 +193,22 @@ export class Session {
 
   submittedFormLinkToLocation() {}
 
-  // Link hover observer delegate
+  // Preloader observer delegate
 
-  canPrefetchAndCacheRequestToLocation(link, location, event) {
-    const absoluteUrl = location.toString()
-    const cached = prefetchCache.get(absoluteUrl)
-
-    return (
-      this.elementIsNavigatable(link) &&
-        locationIsVisitable(location, this.snapshot.rootLocation) &&
-        (!cached || cached.ttl < new Date())
-    )
+  preloadAnchor(anchor) {
+    if (this.shouldPreloadLink(anchor)) {
+      this.preloader.preloadAnchor(anchor)
+    }
   }
 
-  prefetchAndCacheRequestToLocation(link, location, cacheTtl) {
-    const absoluteUrl = location.toString()
-    const fetchRequest = new FetchRequest(
-      this.linkPrefetchObserver,
-      FetchMethod.get,
-      location,
-      new URLSearchParams(),
-      link
-    )
+  predictivePreloadTriggered(link) {
+    if (this.shouldPreloadLink(link)) {
+      this.preloader.predictivePreloadTriggered(link)
+    }
+  }
 
-    fetchRequest.perform()
-
-    prefetchCache.set(absoluteUrl, {
-      fetchRequest,
-      ttl: new Date(new Date().getTime() + cacheTtl)
-    })
+  useCachedRequestForPreloadFetchRequestEvent(event) {
+    this.preloader.useCachedRequestForPreloadFetchRequestEvent(event)
   }
 
   // Link click observer delegate
@@ -340,10 +327,6 @@ export class Session {
   viewRenderedSnapshot(_snapshot, isPreview, renderMethod) {
     this.view.lastRenderedLocation = this.history.location
     this.notifyApplicationAfterRender(isPreview, renderMethod)
-  }
-
-  preloadOnLoadLinksForView(element) {
-    this.preloader.preloadOnLoadLinksForView(element)
   }
 
   viewInvalidated(reason) {

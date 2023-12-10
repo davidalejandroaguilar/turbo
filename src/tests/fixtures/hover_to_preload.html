@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Hover to Preload</title>
+    <script src="/dist/turbo.es2017-umd.js" data-turbo-track="reload"></script>
+    <meta name="turbo-predictive-preload" content="true" />
+  </head>
+
+  <body>
+    <a
+      href="/src/tests/fixtures/preloaded_predictively.html"
+      id="anchor_for_preload"
+      >Hover to preload me</a>
+    <a href="/src/tests/fixtures/bare.html" id="anchor_for_preload_other_href"
+      >Hover to preload me</a>
+    <a
+      href="/src/tests/fixtures/preloaded_predictively.html"
+      id="anchor_with_inner_elements"
+    >
+      <span>Hover to preload me</span>
+    </a>
+    <a
+      href="/src/tests/fixtures/preloaded_predictively.html"
+      id="anchor_with_turbo_stream"
+      data-turbo-stream
+      >Hover to preload me</a>
+    <a
+      href="/src/tests/fixtures/preloaded_predictively.html"
+      id="anchor_with_delay"
+      data-turbo-predictive-preload-delay="300"
+      >Hover to preload me</a>
+    <div data-turbo="false">
+      <a
+        href="/src/tests/fixtures/preloaded_predictively.html"
+        id="anchor_with_turbo_false_parent"
+        >Won't preload when hovering me</a>
+    </div>
+    <div data-turbo-predictive-preload="false">
+      <a
+        href="/src/tests/fixtures/preloaded_predictively.html"
+        id="anchor_with_turbo_preload_false_parent"
+        >Won't preload when hovering me</a>
+    </div>
+    <a
+      href="/src/tests/fixtures/preloaded_predictively.html"
+      id="anchor_with_turbo_preload_false"
+      data-turbo-predictive-preload="false"
+      >Won't preload when hovering me</a>
+    <a
+      href="/src/tests/fixtures/preloaded_predictively.html"
+      id="anchor_with_turbo_false"
+      data-turbo="false"
+      >Won't preload when hovering me</a>
+    <a
+      href="/src/tests/fixtures/hover_to_preload.html"
+      id="anchor_for_same_location"
+      >Won't preload when hovering me</a>
+    <a
+      href="/src/tests/fixtures/preloaded_predictively.html?foo=bar"
+      id="anchor_for_same_location_with_query"
+      >Hover to preload me</a>
+    <a href="https://example.com" id="anchor_for_different_origin"
+      >Won't preload when hovering me</a>
+    <a
+      href="http://localhost:9000/src/tests/fixtures/preloaded_predictively.html"
+      id="anchor_with_whole_url"
+      >Hover to preload me</a>
+    <a href="#some_anchor" id="anchor_with_hash"
+      >Won't preload when hovering me</a>
+    <a href="ftp://example.com" id="anchor_with_ftp_protocol"
+      >Won't preload when hovering me</a>
+    <a
+      href="/src/tests/fixtures/preloaded_predictively.html"
+      target="preload_iframe"
+      id="anchor_with_iframe_target"
+      >Won't preload when hovering me</a>
+    <a
+      href="/src/tests/fixtures/preloaded_predictively.html"
+      data-turbo-method="post"
+      id="anchor_with_post_method"
+      >Won't preload when hovering me</a>
+    <iframe
+      src="/src/tests/fixtures/hover_to_preload_iframe.html"
+      name="preload_iframe"
+    >
+    </iframe>
+  </body>
+</html>
