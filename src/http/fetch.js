@@ -23,6 +23,8 @@ async function fetchWithTurboHeaders(url, options = {}) {
   // content outside the frame will be discarded.
   if (response.ok && response.redirected && !options?.headers?.["Turbo-Frame"]) {
     recentRequests.markUrlAsRefreshed(requestUID, response.url)
+  } else if (response.status === 422) {
+    recentRequests.markUrlAsRefreshed(requestUID, document.baseURI)
   }
 
   return response
